@@ -21,6 +21,7 @@ class AuthController extends Controller
         ]);
     }
 
+    // buat method untuk user bisa login
     public function login(Request $request)
     {
         $akun = $request->validate([
@@ -28,6 +29,7 @@ class AuthController extends Controller
             "password" => "required"
         ]);
 
+        // jika login sukses maka return response sukses
         if(Auth::attempt($akun)) {
             $request->session()->regenerate();
             return response()->json([
@@ -35,6 +37,7 @@ class AuthController extends Controller
                 "Body:" => $akun
             ], 200); 
         } else {
+            // jika login gagal maka return response gagal
             return response()->json([
                 "Header: Response code:" => 401,
                 "Body:" => [
@@ -67,11 +70,14 @@ class AuthController extends Controller
 
     public function konsul(Request $request)
     {
+        // buat variable untuk insert data 
         $konsul = Consultation::create([
+            // ambil data dari user input kemudian insert ke database
             "disease_history" =>  $request->disease_history,
             "current_symptoms" => $request->current_symptoms
         ]);
 
+        // jika gagal insert data maka return response error
         if(!$konsul) {
             response()->json([
                 "Header:" => "Response code: 401",
@@ -80,6 +86,7 @@ class AuthController extends Controller
                 ],
             ], 401);
         } else {
+            // jika user sukses menginputkan data maka return response sukses
             response()->json([
                 "Header:" => "Response code: 200",
                 "Body" => [
@@ -89,10 +96,14 @@ class AuthController extends Controller
         }
     }
 
+    // ambil data konsultasi berdasarkan id
     public function getKonsul($id)
     {
+        // ambil data sesuai id yang diminta parameter
         $konsul = DB::table("consultations")->where("id", $id)->get();
+        // cek apakah data ada didatabase atau tidak
         $validate = DB::table("consultations")->where("id", $id)->first();
+        // jika validasi gagal maka return response error
         if(!$validate) {
              return response()->json([
                 "Header:" => "Response code: 401",
@@ -101,6 +112,7 @@ class AuthController extends Controller
                 ],
             ], 401);
         } else {
+            // jika validasi berhasil maka return response sukses
             return response()->json([
                 "Header:" => "Response code: 200",
                 "Body" => $konsul
@@ -108,66 +120,60 @@ class AuthController extends Controller
         }
     }
 
+    // ambil semua data 
     public function getAllSpot()
     {
+        // ambil semua data dari table spots
         $spot = Spot::all();
+        // ambil semua data dari table vaccines
         $vaccines = Vaccines::all();
-        if(Auth::user()) {
-            return response()->json([
-                "Header:" => "Response code: 200",
-                "Spots:" => $spot,
-                "available_vaccines" => $vaccines
-            ], 200);  
-        } else { 
-            return response()->json([
-                "Header:" => "Response code: 401",
-                "Body" => [
-                    "Message" => "Unauthorized user"
-                ],
-            ], 401);
-        }
+
+        // jika user sudah login maka return response sukses
+        return response()->json([
+            "Header:" => "Response code: 200",
+            "Spots:" => $spot,
+            "available_vaccines" => $vaccines
+        ], 200);  
     }
 
+    // buat method untuk mengambil data dari table spots sesuai id parameter
     public function getSpotId(Spot $spot)
     {
-        if(Auth::user()) {
-            return response()->json([
-                "Header:" => "Response code: 200",
-                "Spots:" => $spot,
-            ], 200);  
-        } else {
-            return response()->json([
-                "Header:" => "Response code: 401",
-                "Body" => [
-                    "Message" => "Unauthorized user"
-                ],
-            ], 401);
-        }
+         return response()->json([
+            "Header:" => "Response code: 200",
+            "Spots:" => $spot,
+        ], 200);  
     }
 
+    // method untuk registrasi vaksin
     public function VaccinesRegis(Request $request)
     {
-        $vaksin = Vaccinations::create([
-            "spot_id" => $request->spot_id,
-            "date" => $request->date
-        ]);
+        // create variable untuk insert data dari input user ke dalam database
 
-        $spot =  $request->spot_id;
-        $date = $request->date;
+        
+        $spot =  $request->input("spot_id");
+        $date = $request->input("date");
 
-        if(empty($spot) && empty($date)) {
+        // cek jika input user kosong dan jika true maka tampilkan pesan input tidak boleh kosong
+        if(empty($spot) || empty($date)) {
             return response()->json([
                 "Header:" => "Response code: 401",
                 "Errors" => [
                     "date" => [
                         "the date does not match the format Y-m-d",
-                    ],
+                        ],
                     "spot_id" =>[
                         "The spot_id field is required",
+                        ]
                     ]
-                ]
-            ], 401);
-        }
+                ], 401);
+            }
+
+        $vaksin = Vaccinations::create([
+            "spot_id" => $spot,
+            "date" => $date
+        ]);
+
 
         if(!$vaksin) {
             return response()->json([
@@ -176,6 +182,8 @@ class AuthController extends Controller
                     "Message" => "Unauthorized user"
                 ],
             ], 401);
+            // jika tanggal yang diinputkan kurang dari 30 hari/1 bulan maka return 
+            // pesan untuk menunggu 30 hari lagi dari vaksinasi pertama
         }elseif (strtotime($request->date) < strtotime("-30 days")) {
             return response()->json([
                 "Header:" => "Response code: 401",
@@ -193,23 +201,13 @@ class AuthController extends Controller
          }
     }
 
+    // ambil semua data vaksin
     public function getAllVaccine()
     {
         $vaksin = Vaccinations::all();
 
-        if(Auth::user()) {
             return response()->json([
                 "Vaccinations" => $vaksin
             ]);
-        } else {
-            return response()->json([
-                "Header:" => "Response code: 401",
-                "Body" => [
-                    "Message" => "Unauthorized user"
-                ],
-            ], 401);
-        }
-
-
     }
 }
